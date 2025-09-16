@@ -1,0 +1,5 @@
+{
+    "name": "odoo-webhook",
+    "version": "1.0.0",
+    "description": "Webhook receiver for Odoo dealer updates"
+}
