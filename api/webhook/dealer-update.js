@@ -1,5 +1,6 @@
 // api/webhook/dealer-update.js
 
+// Contact categories data
 const contactCategories = [
     { "category_id": 1, "category_name": "Dealer" },
     { "category_id": 2, "category_name": "Distributor" },
@@ -15,6 +16,7 @@ const contactCategories = [
     { "category_id": 12, "category_name": "Motor vehicles" }
 ];
 
+// Odoo countries data
 const odooCountries = [
     { "id": 1, "name": "Andorra" },
     { "id": 2, "name": "United Arab Emirates" },
@@ -268,7 +270,6 @@ const odooCountries = [
     { "id": 250, "name": "Kosovo" }
 ];
 
-
 // Simple in-memory storage for webhooks (resets when server restarts)
 let webhookHistory = [];
 
@@ -362,7 +363,7 @@ function validatePayload(body) {
     };
 }
 
-export default function handler(req, res) {
+export default async function handler(req, res) {
     const timestamp = new Date().toISOString();
 
     // Handle GET requests to view stored webhooks
@@ -426,6 +427,47 @@ export default function handler(req, res) {
         }
 
         console.log('Full Payload:', JSON.stringify(req.body, null, 2));
+
+        // If validation passes, send POST request to secret endpoint
+        let externalApiResult = null;
+        if (validation.isValid) {
+            try {
+                const secretUrl = 'https://mid-city-engineering.odoo.com/web/hook/1714b37e-97c4-44bc-8796-8cc4f7938950'; // Replace with your actual URL
+                const postData = {
+                    model: "res.partner",
+                    id: req.body._id,
+                    new_latitude: -200,
+                    new_longitude: -200
+                };
+
+                console.log('Sending POST to external API:', secretUrl);
+                console.log('POST data:', JSON.stringify(postData, null, 2));
+
+                const response = await fetch(secretUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(postData)
+                });
+
+                const responseText = await response.text();
+                externalApiResult = {
+                    status: response.status,
+                    statusText: response.statusText,
+                    body: responseText
+                };
+
+                console.log('External API response:', response.status, responseText);
+
+            } catch (error) {
+                console.error('Failed to send POST to external API:', error.message);
+                externalApiResult = {
+                    error: error.message
+                };
+            }
+        }
+
         console.log('========================');
 
         // Send response back to Odoo
@@ -437,6 +479,7 @@ export default function handler(req, res) {
             timestamp,
             validation: validation,
             contactInfo: webhookData.contactInfo,
+            externalApiResult: externalApiResult,
             totalWebhooksReceived: webhookHistory.length
         });
     }
