@@ -459,7 +459,11 @@ export default async function handler(req, res) {
                     body: responseText
                 };
 
-                console.log('External API response:', response.status, responseText);
+                console.log('External API full response:', {
+                    status: response.status,
+                    headers: Object.fromEntries(response.headers.entries()),
+                    body: responseText
+                });
 
             } catch (error) {
                 console.error('Failed to send POST to external API:', error.message);
