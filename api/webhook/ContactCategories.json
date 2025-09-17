@@ -1,0 +1,50 @@
+[
+    {
+        "category_id": 1,
+        "category_name": "Dealer"
+    },
+    {
+        "category_id": 2,
+        "category_name": "Distributor"
+    },
+    {
+        "category_id": 3,
+        "category_name": "Electrical wire and cable and harness"
+    },
+    {
+        "category_id": 4,
+        "category_name": "Sprinter"
+    },
+    {
+        "category_id": 5,
+        "category_name": "Transportation components and systems"
+    },
+    {
+        "category_id": 6,
+        "category_name": "Motor homes"
+    },
+    {
+        "category_id": 7,
+        "category_name": "Lithographers services"
+    },
+    {
+        "category_id": 8,
+        "category_name": "Business and corporate management consultation services"
+    },
+    {
+        "category_id": 9,
+        "category_name": "Vehicle maintenance and repair services"
+    },
+    {
+        "category_id": 10,
+        "category_name": "Electronic Components and Supplies"
+    },
+    {
+        "category_id": 11,
+        "category_name": "Audio and visual equipment"
+    },
+    {
+        "category_id": 12,
+        "category_name": "Motor vehicles"
+    }
+]
