@@ -3,19 +3,23 @@
 // Simple in-memory storage for webhooks (resets when server restarts)
 let webhookHistory = [];
 
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
 // Load the JSON data files from your repo
 let ContactCategories = [];
 let OdooCountryIDs = [];
 
 // Load data on first request (cached for subsequent requests)
-async function loadData() {
+function loadData() {
     if (ContactCategories.length === 0) {
         try {
-            const categoriesData = await window.fs.readFile('ContactCategories.json', { encoding: 'utf8' });
+            const categoriesPath = join(process.cwd(), 'ContactCategories.json');
+            const categoriesData = readFileSync(categoriesPath, 'utf8');
             ContactCategories = JSON.parse(categoriesData);
             console.log(`Loaded ${ContactCategories.length} contact categories`);
         } catch (error) {
-            console.error('Failed to load ContactCategories.json:', error);
+            console.error('Failed to load ContactCategories.json:', error.message);
             // Fallback to hardcoded data
             ContactCategories = [{ "category_id": 1, "category_name": "Dealer" }];
         }
@@ -23,11 +27,12 @@ async function loadData() {
 
     if (OdooCountryIDs.length === 0) {
         try {
-            const countriesData = await window.fs.readFile('OdooCountryIDs.json', { encoding: 'utf8' });
+            const countriesPath = join(process.cwd(), 'OdooCountryIDs.json');
+            const countriesData = readFileSync(countriesPath, 'utf8');
             OdooCountryIDs = JSON.parse(countriesData);
             console.log(`Loaded ${OdooCountryIDs.length} countries`);
         } catch (error) {
-            console.error('Failed to load OdooCountryIDs.json:', error);
+            console.error('Failed to load OdooCountryIDs.json:', error.message);
             // Fallback to hardcoded data
             OdooCountryIDs = [{ "id": 233, "name": "United States" }];
         }
@@ -124,11 +129,11 @@ function validatePayload(body) {
     };
 }
 
-export default async function handler(req, res) {
+export default function handler(req, res) {
     const timestamp = new Date().toISOString();
 
     // Load data if not already loaded
-    await loadData();
+    loadData();
 
     // Handle GET requests to view stored webhooks
     if (req.method === 'GET') {
