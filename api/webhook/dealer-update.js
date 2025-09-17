@@ -363,8 +363,41 @@ function validatePayload(body) {
     };
 }
 
+async function geocodeAddress(GOOGLE_MAPS_API_KEY, street, city, country, zip) {
+    if (!GOOGLE_MAPS_API_KEY) {
+        throw new Error('Google Maps API key not configured');
+    }
+
+    const address = `${street}, ${city}, ${country} ${zip}`;
+    const encodedAddress = encodeURIComponent(address);
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${GOOGLE_MAPS_API_KEY}`;
+
+    console.log('Geocoding address:', address);
+
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.status === 'OK' && data.results && data.results.length > 0) {
+            const location = data.results[0].geometry.location;
+            console.log('Geocoding successful:', location);
+            return {
+                latitude: location.lat,
+                longitude: location.lng,
+                formatted_address: data.results[0].formatted_address
+            };
+        } else {
+            throw new Error(`Geocoding failed: ${data.status} - ${data.error_message || 'Unknown error'}`);
+        }
+    } catch (error) {
+        console.error('Geocoding error:', error.message);
+        throw error;
+    }
+}
+
 export default async function handler(req, res) {
     const timestamp = new Date().toISOString();
+    const startTime = Date.now();
 
     // Handle GET requests to view stored webhooks
     if (req.method === 'GET') {
@@ -429,19 +462,39 @@ export default async function handler(req, res) {
         console.log('Full Payload:', JSON.stringify(req.body, null, 2));
 
         // If validation passes, send POST request to secret endpoint
-        let externalApiResult = null;
+        let odooWebhookResult = null;
+        let geocodingResult = null;
         if (validation.isValid) {
+            const GOOGLE_MAPS_API_KEY = 'AIzaSyBez7bMMNmEmyK8Om2hIeirvDl0WYcP0Wo';
+            const secretUrl = 'https://mid-city-engineering.odoo.com/web/hook/1714b37e-97c4-44bc-8796-8cc4f7938950'; // Replace with your actual URL
             try {
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                const secretUrl = 'https://mid-city-engineering.odoo.com/web/hook/1714b37e-97c4-44bc-8796-8cc4f7938950'; // Replace with your actual URL
+                // Geocode the address
+                const countryName = odooCountries.find(c => c.id === req.body.country_id)?.name || '';
+                geocodingResult = await geocodeAddress(
+                    GOOGLE_MAPS_API_KEY,
+                    req.body.street,
+                    req.body.city,
+                    countryName,
+                    req.body.zip
+                );
+
+                // Calculate remaining wait time to ensure minimum 2 seconds total
+                const elapsedTime = Date.now() - startTime;
+                const remainingWaitTime = Math.max(0, 2000 - elapsedTime);
+
+                if (remainingWaitTime > 0) {
+                    console.log(`Waiting additional ${remainingWaitTime}ms to meet 2-second minimum`);
+                    await new Promise(resolve => setTimeout(resolve, remainingWaitTime));
+                }
+
                 const postData = {
                     model: "res.partner",
                     id: req.body._id,
-                    new_latitude: -200,
-                    new_longitude: -200
+                    new_latitude: geocodingResult.latitude,
+                    new_longitude: geocodingResult.longitude
                 };
 
-                console.log('Sending POST to external API:', secretUrl);
+                console.log('Sending POST to Odoo web hook:', secretUrl);
                 console.log('POST data:', JSON.stringify(postData, null, 2));
 
                 const response = await fetch(secretUrl, {
@@ -453,23 +506,30 @@ export default async function handler(req, res) {
                 });
 
                 const responseText = await response.text();
-                externalApiResult = {
+                odooWebhookResult = {
                     status: response.status,
                     statusText: response.statusText,
                     body: responseText
                 };
 
-                console.log('External API full response:', {
+                console.log('Odoo webhook full response:', {
                     status: response.status,
                     headers: Object.fromEntries(response.headers.entries()),
                     body: responseText
                 });
 
             } catch (error) {
-                console.error('Failed to send POST to external API:', error.message);
-                externalApiResult = {
+                console.error('Failed to geocode or send POST to external API:', error.message);
+                odooWebhookResult = {
                     error: error.message
                 };
+
+                // If geocoding failed, we might still want to wait the full 2 seconds
+                const elapsedTime = Date.now() - startTime;
+                const remainingWaitTime = Math.max(0, 2000 - elapsedTime);
+                if (remainingWaitTime > 0) {
+                    await new Promise(resolve => setTimeout(resolve, remainingWaitTime));
+                }
             }
         }
 
@@ -484,7 +544,8 @@ export default async function handler(req, res) {
             timestamp,
             validation: validation,
             contactInfo: webhookData.contactInfo,
-            externalApiResult: externalApiResult,
+            geocodingResult: geocodingResult, // Add this line
+            odooWebhookResult: odooWebhookResult,
             totalWebhooksReceived: webhookHistory.length
         });
     }
