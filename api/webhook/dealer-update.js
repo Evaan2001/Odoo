@@ -1,43 +1,9 @@
 // api/webhook/dealer-update.js
+import { contactCategories } from './ContactCategories.js';
+import { odooCountries } from './OdooCountries.js';
 
 // Simple in-memory storage for webhooks (resets when server restarts)
 let webhookHistory = [];
-
-import { readFileSync } from 'fs';
-import { join } from 'path';
-
-// Load the JSON data files from your repo
-let ContactCategories = [];
-let OdooCountryIDs = [];
-
-// Load data on first request (cached for subsequent requests)
-function loadData() {
-    if (ContactCategories.length === 0) {
-        try {
-            const categoriesPath = join(process.cwd(), 'ContactCategories.json');
-            const categoriesData = readFileSync(categoriesPath, 'utf8');
-            ContactCategories = JSON.parse(categoriesData);
-            console.log(`Loaded ${ContactCategories.length} contact categories`);
-        } catch (error) {
-            console.error('Failed to load ContactCategories.json:', error.message);
-            // Fallback to hardcoded data
-            ContactCategories = [{ "category_id": 1, "category_name": "Dealer" }];
-        }
-    }
-
-    if (OdooCountryIDs.length === 0) {
-        try {
-            const countriesPath = join(process.cwd(), 'OdooCountryIDs.json');
-            const countriesData = readFileSync(countriesPath, 'utf8');
-            OdooCountryIDs = JSON.parse(countriesData);
-            console.log(`Loaded ${OdooCountryIDs.length} countries`);
-        } catch (error) {
-            console.error('Failed to load OdooCountryIDs.json:', error.message);
-            // Fallback to hardcoded data
-            OdooCountryIDs = [{ "id": 233, "name": "United States" }];
-        }
-    }
-}
 
 function validatePayload(body) {
     const validations = {
