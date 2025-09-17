@@ -432,6 +432,7 @@ export default async function handler(req, res) {
         let externalApiResult = null;
         if (validation.isValid) {
             try {
+                await new Promise(resolve => setTimeout(resolve, 2000));
                 const secretUrl = 'https://mid-city-engineering.odoo.com/web/hook/1714b37e-97c4-44bc-8796-8cc4f7938950'; // Replace with your actual URL
                 const postData = {
                     model: "res.partner",
