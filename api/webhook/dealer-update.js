@@ -68,7 +68,7 @@ function validatePayload(body) {
 
     // Check category_id for "Dealer"
     if (body.category_id && Array.isArray(body.category_id)) {
-        const dealerCategory = ContactCategories.find(cat => cat.category_name === 'Dealer');
+        const dealerCategory = contactCategories.find(cat => cat.category_name === 'Dealer');
         if (dealerCategory && body.category_id.includes(dealerCategory.category_id)) {
             validations.isDealerCategory = true;
         } else {
@@ -87,7 +87,7 @@ function validatePayload(body) {
 
     // Check country_id
     if (body.country_id && typeof body.country_id === 'number') {
-        const country = OdooCountryIDs.find(c => c.id === body.country_id);
+        const country = odooCountries.find(c => c.id === body.country_id);
         if (country) {
             validations.hasValidCountry = true;
         } else {
@@ -132,17 +132,14 @@ function validatePayload(body) {
 export default function handler(req, res) {
     const timestamp = new Date().toISOString();
 
-    // Load data if not already loaded
-    loadData();
-
     // Handle GET requests to view stored webhooks
     if (req.method === 'GET') {
         return res.status(200).json({
             message: 'Webhook History',
             totalReceived: webhookHistory.length,
             dataStats: {
-                categoriesLoaded: ContactCategories.length,
-                countriesLoaded: OdooCountryIDs.length
+                categoriesLoaded: contactCategories.length,
+                countriesLoaded: odooCountries.length
             },
             webhooks: webhookHistory.slice(-10) // Show last 10 webhooks
         });
@@ -155,7 +152,7 @@ export default function handler(req, res) {
 
         // Get country name for logging
         const countryName = req.body.country_id ?
-            OdooCountryIDs.find(c => c.id === req.body.country_id)?.name || 'Unknown' :
+            odooCountries.find(c => c.id === req.body.country_id)?.name || 'Unknown' :
             'Not provided';
 
         // Capture everything about this webhook
